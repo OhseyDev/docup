@@ -121,7 +121,6 @@ impl DocItem {
     }
 }
 
-| JetBrains         |   £770    |   Yearly      | Tools         |
 impl FromStr for DocItem {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
