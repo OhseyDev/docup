@@ -1,5 +1,6 @@
 use std::string::ToString;
 use std::str::{Chars, FromStr};
+use url::{Url, ParseError as ParseErrorUrl};
 
 pub trait ParseStr: FromStr {
     fn parse_str(s: &str, ctx: &DocContext) -> Result<Self, Self::Err>;
@@ -34,12 +35,16 @@ pub enum DocItem {
     Heading(Heading),
     Paragraph(Paragraph),
     Code(Code),
+    Blockquote(String),
+    HorizontalRule(),
+    List(List),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QuoteItem {
     Heading(Heading),
     Paragraph(Paragraph),
+    List(List),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -47,16 +52,30 @@ pub enum HeadingLevel { Level1,Level2,Level3,Level4,Level5,Level6 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TextToken {
-    Bold(String),
-    BoldItalic(String),
-    Def(String),
-    Italic(String),
+    Bold(Box<str>),
+    BoldItalic(Box<str>),
+    Def(Box<str>),
+    Italic(Box<str>),
+    Link(Link),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Heading {
     level: HeadingLevel,
     content: Box<[TextToken]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Link {
+    name: Box<str>,
+    href: Box<str>,
+    img: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct List {
+    items: Box<[Box<str>]>,
+    len: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -84,6 +103,7 @@ impl FromStr for Document {
             let c = item.to_string().pop();
             if c == Some('\\') {
                 buffer.push_str(item);
+                continue;
             }
         }
         todo!()
@@ -149,6 +169,9 @@ impl ToString for DocItem {
             Self::Heading(h) => h.to_string(),
             Self::Paragraph(p) => p.to_string(),
             Self::Code(c) => c.to_string(),
+            Self::List(l) => todo!(),
+            Self::HorizontalRule() => todo!(),
+            Self::Blockquote(s) => todo!(),
         }
     }
 }
@@ -215,10 +238,11 @@ impl FromStr for TextToken {
 impl ToString for TextToken {
     fn to_string(&self) -> String {
         return match self {
-            Self::Def(s) => s.clone(),
+            Self::Def(s) => s.to_string(),
             Self::Italic(s) => format!("*{}*", s),
             Self::Bold(s) => format!("**{}**", s),
             Self::BoldItalic(s) => format!("***{}***", s),
+            Self::Link(l) => todo!(),
         }
     }
 }
