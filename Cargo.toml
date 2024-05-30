@@ -2,6 +2,8 @@
 name = "docup"
 version = "0.1.0"
 edition = "2021"
+license = "EPL-2.0"
+description = "Package for working with content documents"
 
 [dependencies]
 url = "2.5.0"
