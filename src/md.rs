@@ -3,11 +3,11 @@ use std::str::{Chars, FromStr};
 use url::{Url, ParseError as ParseErrorUrl};
 
 pub trait ParseStr: FromStr {
-    fn parse_str(s: &str, ctx: &DocContext) -> Result<Self, Self::Err>;
+    fn parse_str(s: &str, ctx: &Context) -> Result<Self, Self::Err>;
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DocContext {
+pub struct Context {
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub struct Document {
 pub enum ParseError {
     EmptyDocument(),
     EmptyContent(),
-    UnexpectedCharacter(char),
+    UnexpectedChar(char),
     UnexpectedEnd(),
 }
 
@@ -68,7 +68,7 @@ pub struct Heading {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Link {
     name: Box<str>,
-    href: Box<str>,
+    href: Url,
     img: bool,
 }
 
@@ -231,7 +231,27 @@ impl ToString for Paragraph {
 impl FromStr for TextToken {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut i: usize = 0;
+        let mut chars = s.chars();
+        let mut content = String::new();
+        let mut mode: u8 = 0;
+        while let Some(c) = chars.next() {
+            match c {
+                '*' => { todo!() },
+                '!' => if i == 0 { mode = 0x11; } else {
+                    
+                },
+                '[' => if mode == 0x11 {
+                    todo!()
+                } else {
+                    mode = 0x10;
+                    todo!()
+                }
+                _ => content.push(c),
+            }
+            i += 1;
+        }
+        Err(ParseError::UnexpectedEnd())
     }
 }
 
@@ -242,7 +262,7 @@ impl ToString for TextToken {
             Self::Italic(s) => format!("*{}*", s),
             Self::Bold(s) => format!("**{}**", s),
             Self::BoldItalic(s) => format!("***{}***", s),
-            Self::Link(l) => todo!(),
+            Self::Link(l) => format!("{}[{}]({})", if l.img { "!" } else { "" }, l.name, l.href),
         }
     }
 }
