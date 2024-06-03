@@ -2,18 +2,10 @@ use std::string::ToString;
 use std::str::{Chars, FromStr};
 use url::{Url, ParseError as ParseErrorUrl};
 
-pub trait ParseStr: FromStr {
-    fn parse_str(s: &str, ctx: &Context) -> Result<Self, Self::Err>;
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Context {
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Document {
-    path: Box<std::path::Path>,
-    content: Box<[DocItem]>,
+pub trait Builder {
+    type Output;
+    fn new() -> impl Builder + Sized;
+    fn build(&self) -> Self::Output;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -31,7 +23,7 @@ pub struct Code {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum DocItem {
+pub enum DocumentItem {
     Heading(Heading),
     Paragraph(Paragraph),
     Code(Code),
@@ -84,6 +76,19 @@ pub struct Paragraph(Box<[TextToken]>);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Quote(Box<[QuoteItem]>);
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Document {
+    name: DocumentName,
+    content: Box<[DocumentItem]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DocumentName {
+    String(Box<str>),
+    Path(Box<std::path::Path>),
+}
+
+
 impl ToString for Document {
     fn to_string(&self) -> String {
         let mut string = String::new();
@@ -97,7 +102,7 @@ impl ToString for Document {
 impl FromStr for Document {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut tokens = Vec::<DocItem>::new();
+        let mut tokens = Vec::<DocumentItem>::new();
         let mut buffer = String::new();
         for item in s.split("\n") {
             let c = item.to_string().pop();
@@ -106,42 +111,44 @@ impl FromStr for Document {
                 continue;
             }
         }
-        todo!()
+        let name = DocumentName::String(s.into());
+        let content = Box::<[DocumentItem]>::from(tokens);
+        Ok(Document { name, content })
     }
 }
 
-impl DocItem {
+impl DocumentItem {
     fn _parse_code(chars: &mut Chars) -> Result<Self, ParseError> {
         let mut r: u8 = 0;
-        let mut block = None;
-        let mut code: Option<String> = None;
-        while let Some(c) = chars.next() {
+        let c = loop {
+            let c = if let Some(c) = chars.next() { c } else { break '\0' };
             match c {
                 '`' => {
                     r += 1;
-                    if let Some(b) = block {
-                        if r != b {
-                            continue;
-                        }
-                        return if let Some(c) = code { Ok(DocItem::Code(Code { content: c, block: b>1 })) } else { Err(ParseError::EmptyContent()) };
-                    } else if r == 3 {
-                        block = Some(r);
-                        r = 0;
-                    }
+                    if r == 3 { break c }
                 },
-                _ => {
-                    if r != 0 {
-                        block = Some(r);
-                        r = 0;
-                    }
-                }
+                _ => break c,
+            }
+        };
+        let mut b: u8 = 0;
+        let mut content = String::new();
+        if c == '\0' { return Err(ParseError::UnexpectedEnd()) }
+        else if c != '`' { content.push(c) }
+        while let Some(c) = chars.next() {
+            match c {
+                '`' => {
+                    b += 1;
+                    if b == r { break }
+                },
+                _ => content.push(c),
             }
         }
-        return Err(ParseError::UnexpectedEnd());
+        if content.is_empty() { return Err(ParseError::EmptyContent()) }
+        return Ok(DocumentItem::Code(Code { content, block: b == 3}));
     }
 }
 
-impl FromStr for DocItem {
+impl FromStr for DocumentItem {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.chars();
@@ -149,13 +156,13 @@ impl FromStr for DocItem {
             return match c {
                 '#' => {
                     let h = Heading::from_str(&format!("{}{}",c,chars.as_str()))?;
-                    Ok(DocItem::Heading(h))
+                    Ok(DocumentItem::Heading(h))
                 }
                 ' ' => continue,
                 '`' => Self::_parse_code(&mut chars),
                 _ => {
                     let p = Paragraph::from_str(&format!("{}{}",c,chars.as_str()))?;
-                    Ok(DocItem::Paragraph(p))
+                    Ok(DocumentItem::Paragraph(p))
                 },
             };
         }
@@ -163,7 +170,7 @@ impl FromStr for DocItem {
     }
 }
 
-impl ToString for DocItem {
+impl ToString for DocumentItem {
     fn to_string(&self) -> String {
         return match self {
             Self::Heading(h) => h.to_string(),
@@ -198,6 +205,16 @@ impl HeadingLevel {
             Self::Level4 => Self::Level5,
             Self::Level5 => Self::Level6,
             Self::Level6 => Self::Level6,
+        }
+    }
+    pub fn decrement(self) -> Self {
+        match self {
+            Self::Level1 => Self::Level1,
+            Self::Level2 => Self::Level1,
+            Self::Level3 => Self::Level2,
+            Self::Level4 => Self::Level3,
+            Self::Level5 => Self::Level4,
+            Self::Level6 => Self::Level5,
         }
     }
 }
@@ -246,6 +263,11 @@ impl FromStr for TextToken {
                 } else {
                     mode = 0x10;
                     todo!()
+                },
+                ']' => if mode == 0x11 || mode == 0x10 {
+                    todo!()
+                } else {
+                    todo!()
                 }
                 _ => content.push(c),
             }
@@ -267,3 +289,17 @@ impl ToString for TextToken {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_code() {
+        let empty = String::from("``````");
+        let s = String::from("``hello world``");
+        let mut chars_s = s.chars();
+        let mut chars_empty = empty.chars();
+        assert_eq!(DocumentItem::_parse_code(&mut chars_s), Ok(DocumentItem::Code(Code { content: "hello world".into(), block: false })));
+        assert_eq!(DocumentItem::_parse_code(&mut chars_empty), Err(ParseError::EmptyContent()));
+    }
+}
