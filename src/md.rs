@@ -88,7 +88,6 @@ pub enum DocumentName {
     Path(Box<std::path::Path>),
 }
 
-
 impl ToString for Document {
     fn to_string(&self) -> String {
         let mut string = String::new();
