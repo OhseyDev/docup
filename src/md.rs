@@ -117,8 +117,7 @@ impl FromStr for Document {
 }
 
 impl DocumentItem {
-    fn _parse_code(chars: &mut Chars) -> Result<Self, ParseError> {
-        let mut r: u8 = 0;
+    fn _parse_code(chars: &mut Chars, mut r: u8) -> Result<Self, ParseError> {
         let c = loop {
             let c = if let Some(c) = chars.next() { c } else { break '\0' };
             match c {
@@ -158,7 +157,7 @@ impl FromStr for DocumentItem {
                     Ok(DocumentItem::Heading(h))
                 }
                 ' ' => continue,
-                '`' => Self::_parse_code(&mut chars),
+                '`' => Self::_parse_code(&mut chars, 1),
                 _ => {
                     let p = Paragraph::from_str(&format!("{}{}",c,chars.as_str()))?;
                     Ok(DocumentItem::Paragraph(p))
@@ -298,7 +297,7 @@ mod tests {
         let s = String::from("``hello world``");
         let mut chars_s = s.chars();
         let mut chars_empty = empty.chars();
-        assert_eq!(DocumentItem::_parse_code(&mut chars_s), Ok(DocumentItem::Code(Code { content: "hello world".into(), block: false })));
-        assert_eq!(DocumentItem::_parse_code(&mut chars_empty), Err(ParseError::EmptyContent()));
+        assert_eq!(DocumentItem::_parse_code(&mut chars_s, 0), Ok(DocumentItem::Code(Code { content: "hello world".into(), block: false })));
+        assert_eq!(DocumentItem::_parse_code(&mut chars_empty, 0), Err(ParseError::EmptyContent()));
     }
 }
