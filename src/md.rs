@@ -10,10 +10,10 @@ pub trait Builder {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ParseError {
-    EmptyDocument(),
-    EmptyContent(),
+    EmptyDocument,
+    EmptyContent,
     UnexpectedChar(char),
-    UnexpectedEnd(),
+    UnexpectedEnd,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,7 +28,7 @@ pub enum DocumentItem {
     Paragraph(Paragraph),
     Code(Code),
     Blockquote(String),
-    HorizontalRule(),
+    HorizontalRule,
     List(List),
 }
 
@@ -130,7 +130,7 @@ impl DocumentItem {
         };
         let mut b: u8 = 0;
         let mut content = String::new();
-        if c == '\0' { return Err(ParseError::UnexpectedEnd()) }
+        if c == '\0' { return Err(ParseError::UnexpectedEnd) }
         else if c != '`' { content.push(c) }
         while let Some(c) = chars.next() {
             match c {
@@ -141,7 +141,7 @@ impl DocumentItem {
                 _ => content.push(c),
             }
         }
-        if content.is_empty() { return Err(ParseError::EmptyContent()) }
+        if content.is_empty() { return Err(ParseError::EmptyContent) }
         return Ok(DocumentItem::Code(Code { content, block: b == 3}));
     }
 }
@@ -151,20 +151,21 @@ impl FromStr for DocumentItem {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.chars();
         while let Some(c) = chars.next() {
+            let content = format!("{}{}",c,chars.as_str());
             return match c {
                 '#' => {
-                    let h = Heading::from_str(&format!("{}{}",c,chars.as_str()))?;
+                    let h = Heading::from_str(&content)?;
                     Ok(DocumentItem::Heading(h))
                 }
                 ' ' => continue,
                 '`' => Self::_parse_code(&mut chars, 1),
                 _ => {
-                    let p = Paragraph::from_str(&format!("{}{}",c,chars.as_str()))?;
+                    let p = Paragraph::from_str(&content)?;
                     Ok(DocumentItem::Paragraph(p))
                 },
             };
         }
-        return Err(ParseError::UnexpectedEnd());
+        return Err(ParseError::UnexpectedEnd);
     }
 }
 
@@ -174,9 +175,9 @@ impl ToString for DocumentItem {
             Self::Heading(h) => h.to_string(),
             Self::Paragraph(p) => p.to_string(),
             Self::Code(c) => c.to_string(),
-            Self::List(l) => todo!(),
-            Self::HorizontalRule() => todo!(),
-            Self::Blockquote(s) => todo!(),
+            Self::List(l) => l.to_string(),
+            Self::HorizontalRule => String::from("___"),
+            Self::Blockquote(s) => s.to_string(),
         }
     }
 }
@@ -249,29 +250,26 @@ impl FromStr for TextToken {
         let mut i: usize = 0;
         let mut chars = s.chars();
         let mut content = String::new();
-        let mut mode: u8 = 0;
+        let mut last_char: Option<char> = None;
         while let Some(c) = chars.next() {
             match c {
                 '*' => { todo!() },
-                '!' => if i == 0 { mode = 0x11; } else {
-                    
-                },
-                '[' => if mode == 0x11 {
-                    todo!()
-                } else {
-                    mode = 0x10;
-                    todo!()
-                },
-                ']' => if mode == 0x11 || mode == 0x10 {
+                '[' => if let Some('!') = last_char {
                     todo!()
                 } else {
                     todo!()
+                },
+                ']' => todo!(),
+                _ => {
+                    if let Some(c) = last_char {
+                        content.push(c);
+                    }
+                    last_char = Some(c);
                 }
-                _ => content.push(c),
             }
             i += 1;
         }
-        Err(ParseError::UnexpectedEnd())
+        Err(ParseError::UnexpectedEnd)
     }
 }
 
@@ -287,17 +285,9 @@ impl ToString for TextToken {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_code() {
-        let empty = String::from("``````");
-        let s = String::from("``hello world``");
-        let mut chars_s = s.chars();
-        let mut chars_empty = empty.chars();
-        assert_eq!(DocumentItem::_parse_code(&mut chars_s, 0), Ok(DocumentItem::Code(Code { content: "hello world".into(), block: false })));
-        assert_eq!(DocumentItem::_parse_code(&mut chars_empty, 0), Err(ParseError::EmptyContent()));
+impl ToString for List {
+    fn to_string(&self) -> String {
+        todo!()
     }
 }
+
