@@ -4,3 +4,5 @@ pub mod html;
 pub mod md;
 #[cfg(feature = "svg")]
 pub mod svg;
+#[cfg(feature = "xml")]
+pub mod xml;

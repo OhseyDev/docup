@@ -10,11 +10,12 @@ url = "2.5.0"
 html = { version = "0.6.3", optional = true }
 svg = { version = "0.17.0", optional = true }
 xml = { version = "0.8.20", optional = true }
+dumd = { verssion = "0.1.0", optional = true }
 
 [features]
-default = ["md", "html"]
+default = ["md"]
 html = ["dep:html"]
 svg = ["dep:svg"]
 xml = ["dep:xml"]
-md = []
+md = ["dep:dumd"]
 
