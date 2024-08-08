@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 pub mod text;
 
 pub trait Builder {
@@ -6,7 +8,9 @@ pub trait Builder {
     fn build(self) -> Result<Self::Output, Error>;
 }
 
+pub trait Content: Debug {}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Error {
-    IncompleteStructure,
+    IncompleteData,
 }

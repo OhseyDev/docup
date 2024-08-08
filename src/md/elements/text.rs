@@ -30,8 +30,8 @@ pub enum Item {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Heading {
-    level: HeadingLvl,
-    content: Box<[Item]>,
+    pub(crate) level: HeadingLvl,
+    pub(crate) content: Box<[Item]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -67,7 +67,7 @@ pub enum Quote<'a> {
 }
 
 impl Item {
-    fn asterick(&mut self) {
+    pub fn asterick(&mut self) {
         *self = match self {
             Self::Italic(c) => Self::Bold(c.clone()),
             Self::Bold(c) => Self::BoldItalic(c.clone()),
@@ -75,7 +75,7 @@ impl Item {
             _ => self.clone(),
         }
     }
-    fn asterick_cons(self) -> Self {
+    pub fn asterick_cons(self) -> Self {
         match self {
             Self::Italic(c) => Self::Bold(c),
             Self::Bold(c) => Self::BoldItalic(c),
@@ -83,7 +83,7 @@ impl Item {
             _ => self,
         }
     }
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         match self {
             Self::Italic(c) => c.is_empty(),
             Self::Bold(c) => c.is_empty(),
@@ -130,7 +130,8 @@ impl FromStr for Item {
                 }
                 '[' => {
                     if let Some(i) = item {
-                        todo!()
+                        let _ = i;
+                        todo!();
                     } else if let Some('!') = last_char {
                         todo!()
                     } else {
@@ -147,6 +148,7 @@ impl FromStr for Item {
             }
             i += 1;
         }
+        let _ = i;
         Err(crate::md::ParseError::UnexpectedEnd)
     }
 }
